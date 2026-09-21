@@ -1,25 +1,32 @@
-"""Skin regions + pixel averaging. This part is mine to write (Step 1 [ME])."""
+"""Skin regions + pixel averaging."""
 import cv2
 import numpy as np
 
-# TODO: pick landmark indices (see outputs/landmarks_frame0.png).
-# Each list is the corners of one region, in order around its edge.
-FOREHEAD = []
-LEFT_CHEEK = []
-RIGHT_CHEEK = []
+# landmark numbers around each patch (picked from outputs/landmarks_frame0.png)
+FOREHEAD = [67, 297, 299, 105]
+LEFT_CHEEK = [100, 203, 187, 123]   # left side of the picture
+RIGHT_CHEEK = [329, 330, 411, 266]  # right side of the picture
+REGIONS = [FOREHEAD, LEFT_CHEEK, RIGHT_CHEEK]
 
 
 def region_mask(shape, pts, indices):
-    """Return a mask (same height/width as the frame): 255 inside the region, 0 outside.
+    """Black image, region painted white (255)."""
+    corners = pts[indices].astype(np.int32)
+    mask = np.zeros(shape, dtype=np.uint8)
+    cv2.fillConvexPoly(mask, corners, 255)
+    return mask
 
-    hint: cv2.fillConvexPoly on an all-zeros uint8 array
-    """
-    raise NotImplementedError
+
+def skin_mask(shape, pts):
+    """All 3 regions in one mask."""
+    mask = np.zeros(shape, dtype=np.uint8)
+    for region in REGIONS:
+        mask = np.maximum(mask, region_mask(shape, pts, region))
+    return mask
 
 
 def mean_rgb(frame_bgr, mask):
-    """Average the pixels where mask is on. Return (r, g, b).
-
-    hint: frame_bgr[mask > 0] gives an (n_pixels, 3) array. Watch out: it's BGR.
-    """
-    raise NotImplementedError
+    """Average color of the masked pixels. Returns (r, g, b)."""
+    pixels = frame_bgr[mask > 0]
+    b, g, r = pixels.mean(axis=0)
+    return r, g, b
